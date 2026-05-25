@@ -136,3 +136,81 @@ exports.deletePost = async (req, res) => {
     });
   }
 };
+
+// 댓글 작성
+exports.createComment = async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id'] || req.body.userId;
+    const { postId } = req.params;
+    const { content } = req.body;
+
+    if (!userId || !content) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId, content는 필수입니다.',
+      });
+    }
+
+    const comment = await communityService.createComment({
+      postId,
+      userId,
+      content,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: '댓글이 작성되었습니다.',
+      data: comment,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+// 댓글 삭제
+exports.deleteComment = async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id'] || req.body.userId;
+    const { postId, commentId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId가 필요합니다.',
+      });
+    }
+
+    const result = await communityService.deleteComment({
+      postId,
+      commentId,
+      userId,
+    });
+
+    if (result.status === 404) {
+      return res.status(404).json({
+        success: false,
+        message: '댓글이 존재하지 않습니다.',
+      });
+    }
+
+    if (result.status === 403) {
+      return res.status(403).json({
+        success: false,
+        message: '댓글 삭제 권한이 없습니다.',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: '댓글이 삭제되었습니다.',
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};

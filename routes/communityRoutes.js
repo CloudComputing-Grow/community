@@ -11,4 +11,8 @@ router.get('/posts', communityController.getPosts);
 router.get('/posts/:postId', communityController.getPostById);
 router.delete('/posts/:postId', communityController.deletePost);
 
+// 댓글
+router.post('/posts/:postId/comments', communityController.createComment);
+router.delete('/posts/:postId/comments/:commentId', communityController.deleteComment);
+
 module.exports = router;

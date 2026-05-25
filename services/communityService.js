@@ -101,3 +101,117 @@ exports.deletePost = async ({ postId, userId }) => {
 
   return { status: 200 };
 };
+
+// 댓글 작성
+exports.createComment = async ({ postId, userId, content }) => {
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [posts] = await connection.query(
+      `
+      SELECT post_id
+      FROM post
+      WHERE post_id = ?
+      `,
+      [postId]
+    );
+
+    if (posts.length === 0) {
+      const error = new Error('게시글이 존재하지 않습니다.');
+      error.status = 404;
+      throw error;
+    }
+
+    const [result] = await connection.query(
+      `
+      INSERT INTO \`comment\` (post_id, user_id, content)
+      VALUES (?, ?, ?)
+      `,
+      [postId, userId, content]
+    );
+
+    await connection.query(
+      `
+      UPDATE post
+      SET comment_count = comment_count + 1
+      WHERE post_id = ?
+      `,
+      [postId]
+    );
+
+    await connection.commit();
+
+    return {
+      commentId: result.insertId,
+      postId: Number(postId),
+      userId: Number(userId),
+      content,
+    };
+  } catch (err) {
+    await connection.rollback();
+
+    if (err.status === 404) {
+      return { status: 404 };
+    }
+
+    throw err;
+  } finally {
+    connection.release();
+  }
+};
+
+// 댓글 삭제
+exports.deleteComment = async ({ postId, commentId, userId }) => {
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [comments] = await connection.query(
+      `
+      SELECT comment_id AS commentId, user_id AS userId
+      FROM \`comment\`
+      WHERE comment_id = ? AND post_id = ?
+      `,
+      [commentId, postId]
+    );
+
+    if (comments.length === 0) {
+      await connection.rollback();
+      return { status: 404 };
+    }
+
+    if (comments[0].userId !== Number(userId)) {
+      await connection.rollback();
+      return { status: 403 };
+    }
+
+    await connection.query(
+      `
+      DELETE FROM \`comment\`
+      WHERE comment_id = ? AND post_id = ?
+      `,
+      [commentId, postId]
+    );
+
+    await connection.query(
+      `
+      UPDATE post
+      SET comment_count = GREATEST(comment_count - 1, 0)
+      WHERE post_id = ?
+      `,
+      [postId]
+    );
+
+    await connection.commit();
+
+    return { status: 200 };
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+};
