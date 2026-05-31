@@ -1,31 +1,15 @@
 const communityService = require('../services/communityService');
 
-exports.dbTest = async (req, res) => {
-  try {
-    const result = await communityService.dbTest();
-
-    res.json({
-      success: true,
-      database: result.dbName,
-    });
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
-  }
-};
-
 // 게시글 작성
 exports.createPost = async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] || req.body.userId;
+    const userId = req.userId;
     const { title, content } = req.body;
 
-    if (!userId || !title || !content) {
+    if (!title || !content) {
       return res.status(400).json({
         success: false,
-        message: 'userId, title, content는 필수입니다.',
+        message: 'title, content는 필수입니다.',
       });
     }
 
@@ -71,8 +55,12 @@ exports.getPosts = async (req, res) => {
 exports.getPostById = async (req, res) => {
   try {
     const { postId } = req.params;
+    const userId = req.userId;
 
-    const post = await communityService.getPostById(postId);
+    const post = await communityService.getPostById({
+      postId,
+      userId,
+    });
 
     if (!post) {
       return res.status(404).json({
@@ -96,15 +84,8 @@ exports.getPostById = async (req, res) => {
 // 게시글 삭제
 exports.deletePost = async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] || req.body.userId;
+    const userId = req.userId;
     const { postId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: 'userId가 필요합니다.',
-      });
-    }
 
     const result = await communityService.deletePost({
       postId,
@@ -140,14 +121,14 @@ exports.deletePost = async (req, res) => {
 // 댓글 작성
 exports.createComment = async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] || req.body.userId;
+    const userId = req.userId;
     const { postId } = req.params;
     const { content } = req.body;
 
-    if (!userId || !content) {
+    if (!content) {
       return res.status(400).json({
         success: false,
-        message: 'userId, content는 필수입니다.',
+        message: 'content는 필수입니다.',
       });
     }
 
@@ -156,6 +137,13 @@ exports.createComment = async (req, res) => {
       userId,
       content,
     });
+
+    if (comment.status === 404) {
+      return res.status(404).json({
+        success: false,
+        message: '게시글이 존재하지 않습니다.',
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -170,18 +158,34 @@ exports.createComment = async (req, res) => {
   }
 };
 
+// 댓글 목록 조회
+exports.getCommentsByPostId = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.userId;
+
+    const comments = await communityService.getCommentsByPostId({
+      postId,
+      userId,
+    });
+
+    res.json({
+      success: true,
+      data: comments,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
 // 댓글 삭제
 exports.deleteComment = async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] || req.body.userId;
+    const userId = req.userId;
     const { postId, commentId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: 'userId가 필요합니다.',
-      });
-    }
 
     const result = await communityService.deleteComment({
       postId,
@@ -206,6 +210,118 @@ exports.deleteComment = async (req, res) => {
     res.json({
       success: true,
       message: '댓글이 삭제되었습니다.',
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+// 게시글 좋아요 토글
+exports.togglePostLike = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { postId } = req.params;
+
+    const result = await communityService.togglePostLike({
+      postId,
+      userId,
+    });
+
+    if (result.status === 404) {
+      return res.status(404).json({
+        success: false,
+        message: '게시글이 존재하지 않습니다.',
+      });
+    }
+
+    res.json({
+      success: true,
+      liked: result.liked,
+      likeCount: result.likeCount,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+// 댓글 좋아요 토글
+exports.toggleCommentLike = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { commentId } = req.params;
+
+    const result = await communityService.toggleCommentLike({
+      commentId,
+      userId,
+    });
+
+    if (result.status === 404) {
+      return res.status(404).json({
+        success: false,
+        message: '댓글이 존재하지 않습니다.',
+      });
+    }
+
+    res.json({
+      success: true,
+      liked: result.liked,
+      likeCount: result.likeCount,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+// 게시글 스크랩 토글
+exports.togglePostScrap = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { postId } = req.params;
+
+    const result = await communityService.togglePostScrap({
+      postId,
+      userId,
+    });
+
+    if (result.status === 404) {
+      return res.status(404).json({
+        success: false,
+        message: '게시글이 존재하지 않습니다.',
+      });
+    }
+
+    res.json({
+      success: true,
+      scrapped: result.scrapped,
+      scrapCount: result.scrapCount,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+// 내 스크랩 목록 조회
+exports.getMyScraps = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const scraps = await communityService.getMyScraps(userId);
+
+    res.json({
+      success: true,
+      data: scraps,
     });
   } catch (err) {
     res.status(500).json({

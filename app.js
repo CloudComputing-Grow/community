@@ -18,7 +18,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/v1/community', communityRoutes);
 
-const PORT = process.env.PORT || 3004;
+const PORT = process.env.PORT || 3006;
 
 app.listen(PORT, () => {
   console.log(`community-service running on port ${PORT}`);
