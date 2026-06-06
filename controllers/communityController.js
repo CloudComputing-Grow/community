@@ -239,8 +239,10 @@ exports.togglePostLike = async (req, res) => {
 
     res.json({
       success: true,
-      liked: result.liked,
-      likeCount: result.likeCount,
+      data: {              // ← data 추가
+        liked: result.liked,
+        likeCount: result.likeCount,
+      }
     });
   } catch (err) {
     res.status(500).json({
@@ -301,8 +303,10 @@ exports.togglePostScrap = async (req, res) => {
 
     res.json({
       success: true,
-      scrapped: result.scrapped,
-      scrapCount: result.scrapCount,
+      data: {              // ← data 추가
+        scrapped: result.scrapped,
+        scrapCount: result.scrapCount,
+  }
     });
   } catch (err) {
     res.status(500).json({

@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./utils/rabbitMQ');
 
 const express = require('express');
 const cors = require('cors');
