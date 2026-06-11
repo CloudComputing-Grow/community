@@ -16,8 +16,10 @@ async function connectRabbitMQ() {
       if (msg !== null) {
         try {
           const eventData = JSON.parse(msg.content.toString());
+          console.log('[community] 회원탈퇴 이벤트 수신:', eventData); // 추가
           if (eventData.eventType === 'UserDeleted') {
             await communityEventController.handleUserDeleted(eventData);
+            console.log('[community] 회원탈퇴 데이터 삭제 완료 userId:', eventData.userId); // 추가
           }
           channel.ack(msg);
         } catch (error) {

@@ -35,6 +35,14 @@ const communityEventController = {
         [userId]
       );
 
+      // 댓글 삭제 후 댓글 수 업데이트
+      await connection.query(
+        `UPDATE post p
+        SET p.comment_count = (
+          SELECT COUNT(*) FROM \`comment\` c WHERE c.post_id = p.post_id
+        )`
+      );
+
       // 게시글 좋아요 삭제 (게시글 삭제 전에)
       await connection.query(
         `DELETE li FROM like_item li
