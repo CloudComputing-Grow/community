@@ -20,6 +20,13 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 3006
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
         envFrom:
         - configMapRef:
             name: grow-community-config
@@ -38,3 +45,22 @@ spec:
     - protocol: TCP
       port: 3006
       targetPort: 3006
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: grow-community-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: grow-community-deployment
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
